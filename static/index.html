@@ -16,8 +16,8 @@
 
     <!-- 主题切换按钮 -->
     <button id="theme-toggle-btn" aria-label="切换主题">
-        <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-        <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
     </button>
 
     <h1 class="title">图片生成</h1>
@@ -28,19 +28,21 @@
         <div class="model-card" data-model="MusePublic/FLUX.1-Kontext-Dev">Kontext</div>
         <div class="model-card" data-model="black-forest-labs/FLUX.1-Krea-dev">Krea</div>
         <div class="model-card" data-model="nanobanana">Nano Banana</div>
-        <!-- 新添加 Agnes AI -->
+        <!-- ========== 添加 Agnes AI ========== -->
         <div class="model-card" data-model="agnes">Agnes AI</div>
+        <!-- ================================= -->
     </div>
 
     <div class="main-container">
         <div class="controls-container">
 
             <!-- ======================================================= -->
-            <!-- Nano Banana + Agnes AI 控制面板 (两者共享)              -->
+            <!-- Nano Banana + Agnes AI 控制面板                         -->
             <!-- ======================================================= -->
             <div id="nanobanana-controls" class="hidden">
                 <div class="api-key-section">
-                    <h2>设置 <span class="prompt-remark">(请注意：Nano Banana 需 OpenRouter Key，Agnes AI 需 Agnes Key)</span></h2>
+                    <h2>设置 <span class="prompt-remark">(Nano Banana 需 OpenRouter Key，Agnes AI 需 Agnes Key)</span></h2>
+                    <!-- 这里两个模型共用同一个输入框，但后端会根据模型选择使用不同的环境变量 -->
                     <input type="password" id="api-key-input-openrouter" placeholder="输入你的 API 密钥 (必填)">
                 </div>
                 <div class="upload-section">
@@ -56,9 +58,9 @@
                 </div>
                 <div class="prompt-section">
                     <h2>2. 输入提示词 <span id="nanobanana-prompt-remark" class="prompt-remark"></span></h2>
+                    <!-- ========== 关键：确保 id 为 prompt-input-nanobanana ========== -->
                     <textarea id="prompt-input-nanobanana" placeholder="例如：一只穿着超级英雄斗篷的猫，电影级灯光"></textarea>
                 </div>
-                <!-- 生成按钮 -->
                 <button class="generate-btn">
                     <span class="btn-text">生成</span>
                     <span class="spinner hidden"></span>
@@ -66,7 +68,7 @@
             </div>
 
             <!-- ======================================================= -->
-            <!-- ModelScope 模型控制面板 (Qwen, Flux, Kontext, Krea)     -->
+            <!-- ModelScope 模型控制面板                                 -->
             <!-- ======================================================= -->
             <div id="modelscope-controls">
                 <div class="api-key-section">
@@ -119,7 +121,6 @@
                         </div>
                     </div>
                 </div>
-                 <!-- 生成按钮 -->
                 <button class="generate-btn">
                     <span class="btn-text">生成</span>
                     <span class="spinner hidden"></span>
