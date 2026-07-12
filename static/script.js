@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const promptPositiveInput = document.getElementById('prompt-input-positive');
     const promptNegativeInput = document.getElementById('prompt-input-negative');
-    const negativePromptWrapper = document.getElementById('negative-prompt-wrapper'); // 用于隐藏
+    const negativePromptWrapper = document.getElementById('negative-prompt-wrapper');
     const sizeSelect = document.getElementById('size-select');
     const stepsInput = document.getElementById('steps-input');
     const guidanceInput = document.getElementById('guidance-input');
@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             inputs: {
                 prompt: '',
                 negative_prompt: '',
-                size: '1024x1024', // 默认改为 1024
+                size: '1024x1024',
                 steps: 30,
                 guidance: 3.5,
                 seed: -1,
@@ -133,24 +133,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
 
-        // ====== Z-Image-Turbo 特殊处理：隐藏负向提示框，强制分辨率 ======
+        // Z-Image-Turbo 特殊处理
         if (currentModel === 'Tongyi-MAI/Z-Image-Turbo') {
-            // 隐藏负向提示词区块
             if (negativePromptWrapper) {
                 negativePromptWrapper.style.display = 'none';
             }
-            // 强制分辨率 1024x1024
-            const sizeSelect = document.getElementById('size-select');
-            if (sizeSelect && sizeSelect.value !== '1024x1024') {
-                sizeSelect.value = '1024x1024';
-                // 更新状态
-                const state = modelStates[currentModel];
-                if (state) {
-                    state.inputs.size = '1024x1024';
+            const sizeSelectEl = document.getElementById('size-select');
+            if (sizeSelectEl && sizeSelectEl.value !== '1024x1024') {
+                sizeSelectEl.value = '1024x1024';
+                const st = modelStates[currentModel];
+                if (st) {
+                    st.inputs.size = '1024x1024';
                 }
             }
         } else {
-            // 其他模型显示负向提示框
             if (negativePromptWrapper) {
                 negativePromptWrapper.style.display = '';
             }
@@ -216,7 +212,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             modelscopePromptRemark.textContent = remarkText;
             modelscopeNegativePromptRemark.textContent = remarkText;
         }
-        // Z-Image 的负向提示框隐藏由 loadStateForCurrentModel 处理
     }
     
     function setupInputValidation() {
@@ -441,20 +436,73 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // ================ 修改后的 displayResults 添加下载按钮 ================
     function displayResults(imageUrls) {
-        if (!imageUrls || imageUrls.length === 0 || !imageUrls[0]) { updateResultStatus("模型没有返回有效的图片URL。"); return; }
-        mainResultImageContainer.innerHTML = ''; resultThumbnailsContainer.innerHTML = '';
+        if (!imageUrls || imageUrls.length === 0 || !imageUrls[0]) {
+            updateResultStatus("模型没有返回有效的图片URL。");
+            return;
+        }
+
+        mainResultImageContainer.innerHTML = '';
+        resultThumbnailsContainer.innerHTML = '';
+
+        const mainWrapper = document.createElement('div');
+        mainWrapper.style.position = 'relative';
+        mainWrapper.style.display = 'inline-block';
+        mainWrapper.style.maxWidth = '100%';
+
         const mainImg = document.createElement('img');
+        mainImg.id = 'main-display-img';
         mainImg.src = imageUrls[0];
+        mainImg.style.maxWidth = '100%';
+        mainImg.style.borderRadius = '8px';
+        mainImg.style.cursor = 'pointer';
         mainImg.onclick = () => openModal(mainImg.src);
-        mainResultImageContainer.appendChild(mainImg);
+        mainWrapper.appendChild(mainImg);
+
+        // ----- 下载按钮 -----
+        const downloadBtn = document.createElement('button');
+        downloadBtn.textContent = '⬇ 下载图片';
+        downloadBtn.style.position = 'absolute';
+        downloadBtn.style.bottom = '12px';
+        downloadBtn.style.right = '12px';
+        downloadBtn.style.padding = '8px 18px';
+        downloadBtn.style.background = 'rgba(124, 58, 237, 0.85)';
+        downloadBtn.style.color = '#fff';
+        downloadBtn.style.border = 'none';
+        downloadBtn.style.borderRadius = '20px';
+        downloadBtn.style.fontSize = '14px';
+        downloadBtn.style.fontWeight = '600';
+        downloadBtn.style.cursor = 'pointer';
+        downloadBtn.style.backdropFilter = 'blur(4px)';
+        downloadBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+        downloadBtn.onclick = function(e) {
+            e.stopPropagation();
+            const img = document.getElementById('main-display-img');
+            if (!img) return;
+            const link = document.createElement('a');
+            link.href = img.src;
+            link.download = 'generated_image.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+        mainWrapper.appendChild(downloadBtn);
+
+        mainResultImageContainer.appendChild(mainWrapper);
+
+        // ----- 缩略图 -----
         if (imageUrls.length > 1) {
             imageUrls.forEach((url, index) => {
                 const thumbImg = document.createElement('img');
                 thumbImg.src = url;
                 thumbImg.classList.add('result-thumb');
-                if (index === 0) { thumbImg.classList.add('active'); }
-                thumbImg.addEventListener('click', () => { mainImg.src = thumbImg.src; document.querySelectorAll('.result-thumb').forEach(t => t.classList.remove('active')); thumbImg.classList.add('active'); });
+                if (index === 0) thumbImg.classList.add('active');
+                thumbImg.addEventListener('click', () => {
+                    mainImg.src = thumbImg.src;
+                    document.querySelectorAll('.result-thumb').forEach(t => t.classList.remove('active'));
+                    thumbImg.classList.add('active');
+                });
                 resultThumbnailsContainer.appendChild(thumbImg);
             });
         }
