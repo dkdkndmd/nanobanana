@@ -287,6 +287,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const state = modelStates[modelId];
         
         try {
+            // === 生成前立即清空显示区 ===
+            mainResultImageContainer.innerHTML = '<p>⏳ 正在生成，请稍候...</p>';
+            resultThumbnailsContainer.innerHTML = '';
+
             state.task.isRunning = true;
             setLoading(true, btn, btnText, spinner);
             
@@ -436,7 +440,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // ================ 修改后的 displayResults 添加下载按钮 ================
+    // ================ displayResults 添加下载按钮与防缓存 ================
     function displayResults(imageUrls) {
         if (!imageUrls || imageUrls.length === 0 || !imageUrls[0]) {
             updateResultStatus("模型没有返回有效的图片URL。");
@@ -453,14 +457,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const mainImg = document.createElement('img');
         mainImg.id = 'main-display-img';
-        mainImg.src = imageUrls[0];
+        // 加时间戳强制刷新
+        mainImg.src = imageUrls[0] + '?t=' + Date.now();
         mainImg.style.maxWidth = '100%';
         mainImg.style.borderRadius = '8px';
         mainImg.style.cursor = 'pointer';
         mainImg.onclick = () => openModal(mainImg.src);
         mainWrapper.appendChild(mainImg);
 
-        // ----- 下载按钮（始终获取当前主图 src）-----
+        // 下载按钮（始终获取当前主图 src）
         const downloadBtn = document.createElement('button');
         downloadBtn.textContent = '⬇ 下载图片';
         downloadBtn.style.position = 'absolute';
@@ -491,11 +496,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         mainResultImageContainer.appendChild(mainWrapper);
 
-        // ----- 缩略图 -----
+        // 缩略图（也加时间戳）
         if (imageUrls.length > 1) {
             imageUrls.forEach((url, index) => {
                 const thumbImg = document.createElement('img');
-                thumbImg.src = url;
+                thumbImg.src = url + '?t=' + Date.now();
                 thumbImg.classList.add('result-thumb');
                 if (index === 0) thumbImg.classList.add('active');
                 thumbImg.addEventListener('click', () => {
