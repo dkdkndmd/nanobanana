@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const promptPositiveInput = document.getElementById('prompt-input-positive');
     const promptNegativeInput = document.getElementById('prompt-input-negative');
+    const negativePromptWrapper = document.getElementById('negative-prompt-wrapper'); // 用于隐藏
     const sizeSelect = document.getElementById('size-select');
     const stepsInput = document.getElementById('steps-input');
     const guidanceInput = document.getElementById('guidance-input');
@@ -45,7 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             inputs: {
                 prompt: '',
                 negative_prompt: '',
-                size: '1328x1328',
+                size: '1024x1024', // 默认改为 1024
                 steps: 30,
                 guidance: 3.5,
                 seed: -1,
@@ -69,7 +70,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateHighlightPosition();
         setupModalListeners();
         
-        // 检查 OpenRouter Key
         fetch('/api/key-status').then(res => res.json()).then(data => {
             if (data.isSet) { 
                 const container = apiKeyOpenRouterInput.parentElement;
@@ -77,7 +77,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }).catch(error => console.error("无法检查 OpenRouter API key 状态:", error));
 
-        // 检查 ModelScope Key
         fetch('/api/modelscope-key-status').then(res => res.json()).then(data => {
             if (data.isSet) { 
                 const container = apiKeyModelScopeInput.parentElement;
@@ -85,7 +84,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }).catch(error => console.error("无法检查 ModelScope API key 状态:", error));
 
-        // ========== 新增：检查 Agnes AI 环境变量 ==========
         fetch('/api/agnes-key-status').then(res => res.json()).then(data => {
             if (data.isSet) {
                 const container = apiKeyOpenRouterInput.parentElement;
@@ -134,6 +132,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 btn.classList.toggle('active', parseInt(btn.dataset.count, 10) === state.inputs.count);
             });
         }
+
+        // ====== Z-Image-Turbo 特殊处理：隐藏负向提示框，强制分辨率 ======
+        if (currentModel === 'Tongyi-MAI/Z-Image-Turbo') {
+            // 隐藏负向提示词区块
+            if (negativePromptWrapper) {
+                negativePromptWrapper.style.display = 'none';
+            }
+            // 强制分辨率 1024x1024
+            const sizeSelect = document.getElementById('size-select');
+            if (sizeSelect && sizeSelect.value !== '1024x1024') {
+                sizeSelect.value = '1024x1024';
+                // 更新状态
+                const state = modelStates[currentModel];
+                if (state) {
+                    state.inputs.size = '1024x1024';
+                }
+            }
+        } else {
+            // 其他模型显示负向提示框
+            if (negativePromptWrapper) {
+                negativePromptWrapper.style.display = '';
+            }
+        }
         
         if (state.task.isRunning) {
             updateResultStatusWithSpinner(state.task.statusText || '正在生成中...');
@@ -145,7 +166,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         updateGenerateButtonState();
     }
-
 
     function clearResults() { mainResultImageContainer.innerHTML = `<p>生成的图片将显示在这里</p>`; resultThumbnailsContainer.innerHTML = ''; }
     
@@ -196,6 +216,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             modelscopePromptRemark.textContent = remarkText;
             modelscopeNegativePromptRemark.textContent = remarkText;
         }
+        // Z-Image 的负向提示框隐藏由 loadStateForCurrentModel 处理
     }
     
     function setupInputValidation() {
@@ -318,9 +339,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return response;
     }
 
-    // ==================== 核心修正：直接读取输入框 ====================
     async function handleNanoBananaGeneration(statusUpdate, modelId) {
-        // 直接从 DOM 获取提示词
         const promptInput = document.getElementById('prompt-input-nanobanana');
         if (!promptInput) {
             throw new Error('提示词输入框未找到，请检查 HTML 中是否存在 id="prompt-input-nanobanana"');
@@ -330,29 +349,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             throw new Error('请输入提示词');
         }
 
-        // API Key 处理：如果输入框可见（即环境变量未设），则必须输入；如果不可见，则允许为空
         const keyInput = document.getElementById('api-key-input-openrouter');
         let apiKey = '';
-        // 如果输入框存在且可见，则读取其值
         if (keyInput && keyInput.parentElement.style.display !== 'none') {
             apiKey = keyInput.value.trim();
             if (!apiKey) {
                 throw new Error('请输入 API 密钥');
             }
         }
-        // 如果输入框不可见，则让后端从环境变量读取，前端传空字符串即可
 
         statusUpdate('正在生成图片...');
-        // 上传图片处理
         const state = modelStates['nanobanana'] || modelStates['agnes'];
         const files = state?.inputs?.files || [];
         const base64Images = await Promise.all(files.map(fileToBase64));
 
         const requestBody = {
-            model: modelId,  // 'agnes' 或 'nanobanana'
+            model: modelId,
             prompt: prompt,
             images: base64Images,
-            apikey: apiKey  // 后端会优先使用这个，若为空则读取环境变量
+            apikey: apiKey
         };
         const response = await fetch('/generate', {
             method: 'POST',
