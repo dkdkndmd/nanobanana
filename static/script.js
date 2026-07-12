@@ -287,7 +287,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const state = modelStates[modelId];
         
         try {
-            // === 生成前立即清空显示区 ===
+            // 生成前立即清空显示区
             mainResultImageContainer.innerHTML = '<p>⏳ 正在生成，请稍候...</p>';
             resultThumbnailsContainer.innerHTML = '';
 
@@ -440,7 +440,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // ================ displayResults 添加下载按钮与防缓存 ================
+    // ================ 优化后的 displayResults（移除时间戳） ================
     function displayResults(imageUrls) {
         if (!imageUrls || imageUrls.length === 0 || !imageUrls[0]) {
             updateResultStatus("模型没有返回有效的图片URL。");
@@ -457,8 +457,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const mainImg = document.createElement('img');
         mainImg.id = 'main-display-img';
-        // 加时间戳强制刷新
-        mainImg.src = imageUrls[0] + '?t=' + Date.now();
+        // 直接使用原始 URL（魔搭返回的链接是临时的，每次不同）
+        mainImg.src = imageUrls[0];
         mainImg.style.maxWidth = '100%';
         mainImg.style.borderRadius = '8px';
         mainImg.style.cursor = 'pointer';
@@ -496,11 +496,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         mainResultImageContainer.appendChild(mainWrapper);
 
-        // 缩略图（也加时间戳）
+        // 缩略图（直接使用原始 URL）
         if (imageUrls.length > 1) {
             imageUrls.forEach((url, index) => {
                 const thumbImg = document.createElement('img');
-                thumbImg.src = url + '?t=' + Date.now();
+                thumbImg.src = url;
                 thumbImg.classList.add('result-thumb');
                 if (index === 0) thumbImg.classList.add('active');
                 thumbImg.addEventListener('click', () => {
