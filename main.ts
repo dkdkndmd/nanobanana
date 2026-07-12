@@ -92,6 +92,38 @@ async function callModelScope(model: string, apikey: string, parameters: any, ti
 }
 
 // =======================================================
+// 模块 3: Agnes AI API 调用逻辑 (无审核)
+// =======================================================
+async function callAgnesAI(prompt: string, apiKey: string): Promise<string> {
+    if (!apiKey) {
+        throw new Error("Agnes AI API key is not set.");
+    }
+    const response = await fetch("https://apihub.agnes-ai.com/v1/images/generations", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            model: "agnes-image-2.0-flash",
+            prompt: prompt,
+        }),
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Agnes AI API error: ${response.status} ${response.statusText} - ${errorBody}`);
+    }
+
+    const data = await response.json();
+    if (data.data && data.data.length > 0 && data.data[0].url) {
+        return data.data[0].url;
+    } else {
+        throw new Error("Agnes AI returned no image URL.");
+    }
+}
+
+// =======================================================
 // 主服务逻辑
 // =======================================================
 serve(async (req) => {
@@ -143,7 +175,25 @@ serve(async (req) => {
                 } else {
                     return createJsonErrorResponse(`Model returned text instead of an image: "${result.content}"`, 400);
                 }
+            } else if (model === 'agnes') {
+                // 处理 Agnes AI
+                const agnesApiKey = apikey || Deno.env.get("AGNES_API_KEY");
+                if (!agnesApiKey) {
+                    return createJsonErrorResponse("Agnes AI API key is not set.", 500);
+                }
+                if (!prompt) {
+                    return createJsonErrorResponse("Prompt is required.", 400);
+                }
+                try {
+                    const imageUrl = await callAgnesAI(prompt, agnesApiKey);
+                    return new Response(JSON.stringify({ imageUrl }), {
+                        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+                    });
+                } catch (error) {
+                    return createJsonErrorResponse(error.message, 500);
+                }
             } else {
+                // 处理 ModelScope
                 const modelscopeApiKey = apikey || Deno.env.get("MODELSCOPE_API_KEY");
                 if (!modelscopeApiKey) { return createJsonErrorResponse("ModelScope API key is not set.", 401); }
                 if (!parameters?.prompt) { return createJsonErrorResponse("Positive prompt is required for ModelScope models.", 400); }
