@@ -460,7 +460,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         mainImg.onclick = () => openModal(mainImg.src);
         mainWrapper.appendChild(mainImg);
 
-        // ----- 下载按钮 -----
+        // ----- 下载按钮（始终获取当前主图 src）-----
         const downloadBtn = document.createElement('button');
         downloadBtn.textContent = '⬇ 下载图片';
         downloadBtn.style.position = 'absolute';
