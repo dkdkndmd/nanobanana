@@ -206,7 +206,6 @@ serve(async (req) => {
                 
                 // ====== Z-Image-Turbo 特殊处理 ======
                 if (model === 'Tongyi-MAI/Z-Image-Turbo') {
-                    // 强制最大分辨率 1024x1024
                     if (parameters.size) {
                         const [w, h] = parameters.size.split('x').map(Number);
                         if (w > 1024 || h > 1024) {
@@ -214,12 +213,10 @@ serve(async (req) => {
                             console.log('[Z-Image] 分辨率已自动调整为 1024x1024');
                         }
                     }
-                    // 清空负向提示词（Z-Image 不支持）
                     if (parameters.negative_prompt) {
                         parameters.negative_prompt = '';
                         console.log('[Z-Image] 负向提示词已清空（模型不支持）');
                     }
-                    // 限制步数范围 8-50
                     if (parameters.steps && (parameters.steps < 8 || parameters.steps > 50)) {
                         parameters.steps = Math.min(Math.max(parameters.steps, 8), 50);
                         console.log('[Z-Image] 步数已自动限制到 8-50');
