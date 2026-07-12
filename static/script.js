@@ -69,13 +69,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateHighlightPosition();
         setupModalListeners();
         
+        // 检查 OpenRouter Key
         fetch('/api/key-status').then(res => res.json()).then(data => {
-            if (data.isSet) { apiKeyOpenRouterInput.parentElement.style.display = 'none'; }
+            if (data.isSet) { 
+                const container = apiKeyOpenRouterInput.parentElement;
+                if (container) container.style.display = 'none';
+            }
         }).catch(error => console.error("无法检查 OpenRouter API key 状态:", error));
 
+        // 检查 ModelScope Key
         fetch('/api/modelscope-key-status').then(res => res.json()).then(data => {
-            if (data.isSet) { apiKeyModelScopeInput.parentElement.style.display = 'none'; }
+            if (data.isSet) { 
+                const container = apiKeyModelScopeInput.parentElement;
+                if (container) container.style.display = 'none';
+            }
         }).catch(error => console.error("无法检查 ModelScope API key 状态:", error));
+
+        // ========== 新增：检查 Agnes AI 环境变量 ==========
+        fetch('/api/agnes-key-status').then(res => res.json()).then(data => {
+            if (data.isSet) {
+                const container = apiKeyOpenRouterInput.parentElement;
+                if (container) container.style.display = 'none';
+            }
+        }).catch(error => console.error("无法检查 Agnes AI API key 状态:", error));
     }
     
     function saveStateForModel(modelId) {
@@ -83,8 +99,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!state) return;
         
         if (modelId === 'nanobanana' || modelId === 'agnes') {
-            // 直接从 DOM 读取最新值，防止缓存
-            state.inputs.prompt = document.getElementById('prompt-input-nanobanana').value;
+            state.inputs.prompt = promptNanoBananaInput.value;
             state.inputs.files = selectedFiles;
         } else {
             state.inputs.prompt = promptPositiveInput.value;
@@ -315,9 +330,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             throw new Error('请输入提示词');
         }
 
-        // API Key 处理：如果前端输入框为空，后端会尝试读取环境变量
+        // API Key 处理：如果输入框可见（即环境变量未设），则必须输入；如果不可见，则允许为空
         const keyInput = document.getElementById('api-key-input-openrouter');
-        let apiKey = keyInput ? keyInput.value.trim() : '';
+        let apiKey = '';
+        // 如果输入框存在且可见，则读取其值
+        if (keyInput && keyInput.parentElement.style.display !== 'none') {
+            apiKey = keyInput.value.trim();
+            if (!apiKey) {
+                throw new Error('请输入 API 密钥');
+            }
+        }
+        // 如果输入框不可见，则让后端从环境变量读取，前端传空字符串即可
 
         statusUpdate('正在生成图片...');
         // 上传图片处理
