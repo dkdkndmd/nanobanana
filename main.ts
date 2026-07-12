@@ -219,7 +219,7 @@ serve(async (req) => {
                         parameters.negative_prompt = '';
                         console.log('[Z-Image] 负向提示词已清空（模型不支持）');
                     }
-                    // 可选：限制步数范围
+                    // 限制步数范围 8-50
                     if (parameters.steps && (parameters.steps < 8 || parameters.steps > 50)) {
                         parameters.steps = Math.min(Math.max(parameters.steps, 8), 50);
                         console.log('[Z-Image] 步数已自动限制到 8-50');
