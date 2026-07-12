@@ -82,9 +82,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const state = modelStates[modelId];
         if (!state) return;
         
-        // ========== 修改 1：Agnes AI 也使用 nanobanana 的输入 ==========
         if (modelId === 'nanobanana' || modelId === 'agnes') {
-            state.inputs.prompt = promptNanoBananaInput.value;
+            // 直接从 DOM 读取最新值，防止缓存
+            state.inputs.prompt = document.getElementById('prompt-input-nanobanana').value;
             state.inputs.files = selectedFiles;
         } else {
             state.inputs.prompt = promptPositiveInput.value;
@@ -103,7 +103,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         updateActiveModelUI();
         
-        // ========== 修改 2：Agnes AI 也加载 nanobanana 的输入 ==========
         if (currentModel === 'nanobanana' || currentModel === 'agnes') {
             promptNanoBananaInput.value = state.inputs.prompt;
             selectedFiles = state.inputs.files;
@@ -163,7 +162,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (activeButton) { const left = activeButton.offsetLeft; const width = activeButton.offsetWidth; modelSelectorContainer.style.setProperty('--highlight-left', `${left}px`); modelSelectorContainer.style.setProperty('--highlight-width', `${width}px`); }
     }
 
-    // ========== 修改 3：updateActiveModelUI 支持 Agnes AI ==========
     function updateActiveModelUI() {
         if (currentModel === 'nanobanana' || currentModel === 'agnes') {
             nanobananaControls.classList.remove('hidden');
@@ -271,7 +269,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             statusUpdate('准备请求...');
 
             let imageUrls;
-            // ========== 修改 4：Agnes AI 也走 nanobanana 的生成流程 ==========
             if (modelId === 'nanobanana' || modelId === 'agnes') {
                 imageUrls = await handleNanoBananaGeneration(statusUpdate, modelId);
             } else {
@@ -306,17 +303,43 @@ document.addEventListener('DOMContentLoaded', async () => {
         return response;
     }
 
-    // ========== 修改 5：handleNanoBananaGeneration 接收 modelId 参数 ==========
+    // ==================== 核心修正：直接读取输入框 ====================
     async function handleNanoBananaGeneration(statusUpdate, modelId) {
-        if (apiKeyOpenRouterInput.parentElement.style.display !== 'none' && !apiKeyOpenRouterInput.value.trim()) { throw new Error('请输入 API 密钥'); }
-        if (!promptNanoBananaInput.value.trim()) { throw new Error('请输入提示词'); }
+        // 直接从 DOM 获取提示词
+        const promptInput = document.getElementById('prompt-input-nanobanana');
+        if (!promptInput) {
+            throw new Error('提示词输入框未找到，请检查 HTML 中是否存在 id="prompt-input-nanobanana"');
+        }
+        const prompt = promptInput.value.trim();
+        if (!prompt) {
+            throw new Error('请输入提示词');
+        }
+
+        // API Key 处理：如果前端输入框为空，后端会尝试读取环境变量
+        const keyInput = document.getElementById('api-key-input-openrouter');
+        let apiKey = keyInput ? keyInput.value.trim() : '';
+
         statusUpdate('正在生成图片...');
-        const base64Images = await Promise.all(modelStates.nanobanana.inputs.files.map(fileToBase64));
-        // ========== 关键：使用 modelId 作为请求的 model 值 ==========
-        const requestBody = { model: modelId, prompt: modelStates.nanobanana.inputs.prompt, images: base64Images, apikey: apiKeyOpenRouterInput.value };
-        const response = await fetch('/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) });
+        // 上传图片处理
+        const state = modelStates['nanobanana'] || modelStates['agnes'];
+        const files = state?.inputs?.files || [];
+        const base64Images = await Promise.all(files.map(fileToBase64));
+
+        const requestBody = {
+            model: modelId,  // 'agnes' 或 'nanobanana'
+            prompt: prompt,
+            images: base64Images,
+            apikey: apiKey  // 后端会优先使用这个，若为空则读取环境变量
+        };
+        const response = await fetch('/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
         const data = await response.json();
-        if (!response.ok || data.error) { throw new Error(data.error || `服务器错误: ${response.status}`); }
+        if (!response.ok || data.error) {
+            throw new Error(data.error || `服务器错误: ${response.status}`);
+        }
         return [data.imageUrl];
     }
 
