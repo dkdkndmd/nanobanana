@@ -19,7 +19,7 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 // =======================================================
 async function callOpenRouter(messages: any[], apiKey: string): Promise<{ type: 'image' | 'text'; content: string }> {
     if (!apiKey) { throw new Error("callOpenRouter received an empty apiKey."); }
-    const openrouterPayload = { model: "google/gemini-2.5-flash-image-preview", messages };
+    const openrouterPayload = { model: "google/gemini-3.1-flash-image", messages };
     console.log("Sending payload to OpenRouter:", JSON.stringify(openrouterPayload, null, 2));
     const apiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST", headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -41,7 +41,6 @@ async function callOpenRouter(messages: any[], apiKey: string): Promise<{ type: 
 // =======================================================
 // 模块 2: ModelScope API 调用逻辑 (用于 Qwen-Image 等)
 // =======================================================
-// [修改] 函数接收一个 timeoutSeconds 参数
 async function callModelScope(model: string, apikey: string, parameters: any, timeoutSeconds: number): Promise<{ imageUrl: string }> {
     const base_url = 'https://api-inference.modelscope.cn/';
     const common_headers = {
@@ -62,13 +61,12 @@ async function callModelScope(model: string, apikey: string, parameters: any, ti
     if (!task_id) { throw new Error("ModelScope API did not return a task_id."); }
     console.log(`[ModelScope] Task submitted. Task ID: ${task_id}`);
     
-    // [修改] 动态计算最大轮询次数
     const pollingIntervalSeconds = 5;
     const maxRetries = Math.ceil(timeoutSeconds / pollingIntervalSeconds);
     console.log(`[ModelScope] Task timeout set to ${timeoutSeconds}s, polling a max of ${maxRetries} times.`);
 
     for (let i = 0; i < maxRetries; i++) {
-        await sleep(pollingIntervalSeconds * 1000); // 使用变量
+        await sleep(pollingIntervalSeconds * 1000);
         console.log(`[ModelScope] Polling task status... Attempt ${i + 1}/${maxRetries}`);
         const statusResponse = await fetch(`${base_url}v1/tasks/${task_id}`, { headers: { ...common_headers, "X-ModelScope-Task-Type": "image_generation" } });
         if (!statusResponse.ok) {
@@ -126,7 +124,6 @@ serve(async (req) => {
 
     if (pathname === "/generate") {
         try {
-            // [修改] 从请求体中解构出 timeout
             const requestData = await req.json();
             const { model, apikey, prompt, images, parameters, timeout } = requestData;
 
@@ -151,8 +148,6 @@ serve(async (req) => {
                 if (!modelscopeApiKey) { return createJsonErrorResponse("ModelScope API key is not set.", 401); }
                 if (!parameters?.prompt) { return createJsonErrorResponse("Positive prompt is required for ModelScope models.", 400); }
                 
-                // [修改] 将 timeout (或默认值) 传递给 callModelScope
-                // Qwen 默认2分钟，其他默认3分钟
                 const timeoutSeconds = timeout || (model.includes('Qwen') ? 120 : 180); 
                 const result = await callModelScope(model, modelscopeApiKey, parameters, timeoutSeconds);
 
