@@ -82,7 +82,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const state = modelStates[modelId];
         if (!state) return;
         
-        if (modelId === 'nanobanana') {
+        // ========== 修改 1：Agnes AI 也使用 nanobanana 的输入 ==========
+        if (modelId === 'nanobanana' || modelId === 'agnes') {
             state.inputs.prompt = promptNanoBananaInput.value;
             state.inputs.files = selectedFiles;
         } else {
@@ -102,7 +103,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         updateActiveModelUI();
         
-        if (currentModel === 'nanobanana') {
+        // ========== 修改 2：Agnes AI 也加载 nanobanana 的输入 ==========
+        if (currentModel === 'nanobanana' || currentModel === 'agnes') {
             promptNanoBananaInput.value = state.inputs.prompt;
             selectedFiles = state.inputs.files;
             thumbnailsContainer.innerHTML = '';
@@ -161,12 +163,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (activeButton) { const left = activeButton.offsetLeft; const width = activeButton.offsetWidth; modelSelectorContainer.style.setProperty('--highlight-left', `${left}px`); modelSelectorContainer.style.setProperty('--highlight-width', `${width}px`); }
     }
 
+    // ========== 修改 3：updateActiveModelUI 支持 Agnes AI ==========
     function updateActiveModelUI() {
-        if (currentModel === 'nanobanana') { nanobananaControls.classList.remove('hidden'); modelscopeControls.classList.add('hidden'); } 
-        else { nanobananaControls.classList.add('hidden'); modelscopeControls.classList.remove('hidden'); }
-        nanobananaPromptRemark.textContent = ''; modelscopePromptRemark.textContent = ''; modelscopeNegativePromptRemark.textContent = '';
-        if (currentModel === 'nanobanana') { nanobananaPromptRemark.textContent = '(支持中文提示词)'; } 
-        else { let remarkText = ''; if (currentModel === 'Qwen/Qwen-Image') { remarkText = '(支持中文提示词)'; } else if (currentModel.includes('FLUX') || currentModel.includes('Kontext') || currentModel.includes('Krea')) { remarkText = '(请使用英文提示词)'; } modelscopePromptRemark.textContent = remarkText; modelscopeNegativePromptRemark.textContent = remarkText; }
+        if (currentModel === 'nanobanana' || currentModel === 'agnes') {
+            nanobananaControls.classList.remove('hidden');
+            modelscopeControls.classList.add('hidden');
+        } else {
+            nanobananaControls.classList.add('hidden');
+            modelscopeControls.classList.remove('hidden');
+        }
+        nanobananaPromptRemark.textContent = '';
+        modelscopePromptRemark.textContent = '';
+        modelscopeNegativePromptRemark.textContent = '';
+        if (currentModel === 'nanobanana' || currentModel === 'agnes') {
+            nanobananaPromptRemark.textContent = '(支持中文提示词)';
+        } else {
+            let remarkText = '';
+            if (currentModel === 'Qwen/Qwen-Image') { remarkText = '(支持中文提示词)'; } else if (currentModel.includes('FLUX') || currentModel.includes('Kontext') || currentModel.includes('Krea')) { remarkText = '(请使用英文提示词)'; }
+            modelscopePromptRemark.textContent = remarkText;
+            modelscopeNegativePromptRemark.textContent = remarkText;
+        }
     }
     
     function setupInputValidation() {
@@ -196,7 +212,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function updateGenerateButtonState() {
         const isTaskRunning = modelStates[currentModel].task.isRunning;
-        const currentPanel = (currentModel === 'nanobanana') ? nanobananaControls : modelscopeControls;
+        const currentPanel = (currentModel === 'nanobanana' || currentModel === 'agnes') ? nanobananaControls : modelscopeControls;
         const currentButton = currentPanel.querySelector('.generate-btn');
         const btnText = currentButton.querySelector('.btn-text');
         const spinner = currentButton.querySelector('.spinner');
@@ -255,8 +271,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             statusUpdate('准备请求...');
 
             let imageUrls;
-            if (modelId === 'nanobanana') {
-                imageUrls = await handleNanoBananaGeneration(statusUpdate);
+            // ========== 修改 4：Agnes AI 也走 nanobanana 的生成流程 ==========
+            if (modelId === 'nanobanana' || modelId === 'agnes') {
+                imageUrls = await handleNanoBananaGeneration(statusUpdate, modelId);
             } else {
                 imageUrls = await handleModelScopeGeneration(statusUpdate);
             }
@@ -289,12 +306,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         return response;
     }
 
-    async function handleNanoBananaGeneration(statusUpdate) {
-        if (apiKeyOpenRouterInput.parentElement.style.display !== 'none' && !apiKeyOpenRouterInput.value.trim()) { throw new Error('请输入 OpenRouter API 密钥'); }
+    // ========== 修改 5：handleNanoBananaGeneration 接收 modelId 参数 ==========
+    async function handleNanoBananaGeneration(statusUpdate, modelId) {
+        if (apiKeyOpenRouterInput.parentElement.style.display !== 'none' && !apiKeyOpenRouterInput.value.trim()) { throw new Error('请输入 API 密钥'); }
         if (!promptNanoBananaInput.value.trim()) { throw new Error('请输入提示词'); }
         statusUpdate('正在生成图片...');
         const base64Images = await Promise.all(modelStates.nanobanana.inputs.files.map(fileToBase64));
-        const requestBody = { model: 'nanobanana', prompt: modelStates.nanobanana.inputs.prompt, images: base64Images, apikey: apiKeyOpenRouterInput.value };
+        // ========== 关键：使用 modelId 作为请求的 model 值 ==========
+        const requestBody = { model: modelId, prompt: modelStates.nanobanana.inputs.prompt, images: base64Images, apikey: apiKeyOpenRouterInput.value };
         const response = await fetch('/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) });
         const data = await response.json();
         if (!response.ok || data.error) { throw new Error(data.error || `服务器错误: ${response.status}`); }
@@ -396,7 +415,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     uploadArea.addEventListener('drop', (e) => handleFiles(Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'))));
     fileInput.addEventListener('change', (e) => handleFiles(Array.from(e.target.files).filter(file => file.type.startsWith('image/'))));
     
-    // [修正] 移除 handleFiles 函数中的重置逻辑
     function handleFiles(files) {
         files.forEach(file => {
              if (!selectedFiles.some(f => f.name === file.name)) {
