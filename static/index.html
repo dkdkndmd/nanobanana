@@ -29,7 +29,6 @@
         <div class="model-card" data-model="black-forest-labs/FLUX.1-Krea-dev">Krea</div>
         <div class="model-card" data-model="nanobanana">Nano Banana</div>
         <div class="model-card" data-model="agnes">Agnes AI</div>
-        <!-- 新增 Z-Image-Turbo -->
         <div class="model-card" data-model="Tongyi-MAI/Z-Image-Turbo">Z-Image-Turbo</div>
     </div>
 
@@ -77,7 +76,8 @@
                     <h2>正向提示词 <span id="modelscope-prompt-remark" class="prompt-remark"></span></h2>
                     <textarea id="prompt-input-positive" placeholder="例如：A golden cat, masterpiece, best quality"></textarea>
                 </div>
-                <div class="prompt-section">
+                <!-- ====== 负向提示词框，Z-Image 时会隐藏 ====== -->
+                <div class="prompt-section" id="negative-prompt-wrapper">
                     <h2>负向提示词 <span id="modelscope-negative-prompt-remark" class="prompt-remark"></span></h2>
                     <textarea id="prompt-input-negative" placeholder="例如：worst quality, low quality, normal quality"></textarea>
                 </div>
@@ -85,6 +85,7 @@
                     <div class="setting-item">
                         <label for="size-select">分辨率</label>
                         <select id="size-select">
+                            <option value="1024x1024" selected>1:1 - 1024x1024 (推荐 Z-Image)</option>
                             <option value="1328x1328">1:1 - 1328x1328</option>
                             <option value="1664x928">16:9 - 1664x928</option>
                             <option value="928x1664">9:16 - 928x1664</option>
