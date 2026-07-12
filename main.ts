@@ -105,7 +105,7 @@ async function callAgnesAI(prompt: string, apiKey: string): Promise<string> {
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            model: "agnes-image-2.0-flash",
+            model: "agnes-image-2.0-flash", // 也可用 agnes-image-2.1-flash
             prompt: prompt,
         }),
     });
@@ -149,6 +149,14 @@ serve(async (req) => {
 
     if (pathname === "/api/modelscope-key-status") {
         const isSet = !!Deno.env.get("MODELSCOPE_API_KEY");
+        return new Response(JSON.stringify({ isSet }), {
+            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        });
+    }
+
+    // ========== 新增：检查 Agnes AI 环境变量 ==========
+    if (pathname === "/api/agnes-key-status") {
+        const isSet = !!Deno.env.get("AGNES_API_KEY");
         return new Response(JSON.stringify({ isSet }), {
             headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
         });
