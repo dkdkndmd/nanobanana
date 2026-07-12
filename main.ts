@@ -92,7 +92,7 @@ async function callModelScope(model: string, apikey: string, parameters: any, ti
 }
 
 // =======================================================
-// 模块 3: Agnes AI API 调用逻辑 (无审核)
+// 模块 3: Agnes AI API 调用逻辑
 // =======================================================
 async function callAgnesAI(prompt: string, apiKey: string): Promise<string> {
     if (!apiKey) {
@@ -105,7 +105,7 @@ async function callAgnesAI(prompt: string, apiKey: string): Promise<string> {
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            model: "agnes-image-2.0-flash", // 也可用 agnes-image-2.1-flash
+            model: "agnes-image-2.0-flash",
             prompt: prompt,
         }),
     });
@@ -154,7 +154,6 @@ serve(async (req) => {
         });
     }
 
-    // ========== 新增：检查 Agnes AI 环境变量 ==========
     if (pathname === "/api/agnes-key-status") {
         const isSet = !!Deno.env.get("AGNES_API_KEY");
         return new Response(JSON.stringify({ isSet }), {
@@ -184,7 +183,6 @@ serve(async (req) => {
                     return createJsonErrorResponse(`Model returned text instead of an image: "${result.content}"`, 400);
                 }
             } else if (model === 'agnes') {
-                // 处理 Agnes AI
                 const agnesApiKey = apikey || Deno.env.get("AGNES_API_KEY");
                 if (!agnesApiKey) {
                     return createJsonErrorResponse("Agnes AI API key is not set.", 500);
@@ -201,11 +199,34 @@ serve(async (req) => {
                     return createJsonErrorResponse(error.message, 500);
                 }
             } else {
-                // 处理 ModelScope
+                // ModelScope 所有其他模型
                 const modelscopeApiKey = apikey || Deno.env.get("MODELSCOPE_API_KEY");
                 if (!modelscopeApiKey) { return createJsonErrorResponse("ModelScope API key is not set.", 401); }
                 if (!parameters?.prompt) { return createJsonErrorResponse("Positive prompt is required for ModelScope models.", 400); }
                 
+                // ====== Z-Image-Turbo 特殊处理 ======
+                if (model === 'Tongyi-MAI/Z-Image-Turbo') {
+                    // 强制最大分辨率 1024x1024
+                    if (parameters.size) {
+                        const [w, h] = parameters.size.split('x').map(Number);
+                        if (w > 1024 || h > 1024) {
+                            parameters.size = '1024x1024';
+                            console.log('[Z-Image] 分辨率已自动调整为 1024x1024');
+                        }
+                    }
+                    // 清空负向提示词（Z-Image 不支持）
+                    if (parameters.negative_prompt) {
+                        parameters.negative_prompt = '';
+                        console.log('[Z-Image] 负向提示词已清空（模型不支持）');
+                    }
+                    // 可选：限制步数范围
+                    if (parameters.steps && (parameters.steps < 8 || parameters.steps > 50)) {
+                        parameters.steps = Math.min(Math.max(parameters.steps, 8), 50);
+                        console.log('[Z-Image] 步数已自动限制到 8-50');
+                    }
+                }
+                // ====== 结束特殊处理 ======
+
                 const timeoutSeconds = timeout || (model.includes('Qwen') ? 120 : 180); 
                 const result = await callModelScope(model, modelscopeApiKey, parameters, timeoutSeconds);
 
